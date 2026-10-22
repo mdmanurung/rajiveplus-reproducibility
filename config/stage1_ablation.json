@@ -1,0 +1,488 @@
+{
+  "schema_version": 1,
+  "protocol_id": "stage1_paired_ablation_2026-10-22",
+  "status": "DESIGN_AND_SMOKE_ONLY_NOT_RUN",
+  "scientific_readiness": {
+    "calibration": "NOT_RUN",
+    "simulation_study": "NOT_RUN",
+    "figures": "NOT_READY",
+    "manuscript": "NOT_READY",
+    "software_promotion": "NOT_READY"
+  },
+  "scope": {
+    "authorized": [
+      "manifest_validation",
+      "interface_validation",
+      "fixed_data_eight_arm_smoke"
+    ],
+    "prohibited": [
+      "scientific_fits",
+      "calibration",
+      "threshold_activation",
+      "winner_selection",
+      "public_default_changes",
+      "scientific_figure_generation"
+    ],
+    "classical_block_fit_in_primary_factorial": false,
+    "inherited_source_bundle_included": false
+  },
+  "planned_orchestrator": {
+    "target": "scripts/run_stage1_smoke.R",
+    "status": "PLANNED_NOT_IMPLEMENTED_NOT_RUN",
+    "data_mode": "fixed_data",
+    "required_arm_count": 8,
+    "claims_permitted": [
+      "plumbing",
+      "constraints",
+      "baseline_equivalence"
+    ]
+  },
+  "internal_helpers": [
+    {
+      "name": ".ablation_prepare",
+      "planned_signature": ".ablation_prepare(blocks, initial_ranks, seed)",
+      "visibility": "internal_only",
+      "responsibility": "fit robust blocks once; cache fits and one selected robust Individual reconstruction"
+    },
+    {
+      "name": ".ablation_geometry",
+      "planned_signature": ".ablation_geometry(cache, joint_rank, representation='raw'/'orthonormal', aggregation='robust'/'classical', seed)",
+      "visibility": "internal_only",
+      "responsibility": "derive immutable Joint geometry from the cache without block refitting"
+    },
+    {
+      "name": ".ablation_finish",
+      "planned_signature": ".ablation_finish(cache, geometry, individual='original'/'constrained', seed)",
+      "visibility": "internal_only",
+      "responsibility": "finish either Individual level from one preselected reconstruction without robust refitting"
+    }
+  ],
+  "factor_levels": {
+    "R": {
+      "name": "representation",
+      "levels": [
+        {
+          "code": 0,
+          "label": "raw",
+          "block_score_handling": "cached robust block scores unchanged; no hidden QR",
+          "final_joint_score_handling": "preserve raw amplitudes; deterministic order and sign only"
+        },
+        {
+          "code": 1,
+          "label": "orthonormal",
+          "block_score_handling": "deterministic rank-revealing thin orthonormalization",
+          "final_joint_score_handling": "deterministic rank-revealing thin orthonormalization"
+        }
+      ],
+      "applies_to": [
+        "block_scores",
+        "final_joint_scores"
+      ]
+    },
+    "S": {
+      "name": "stack_aggregation",
+      "levels": [
+        {
+          "code": 0,
+          "label": "robust",
+          "handling": "current robust stacked-score factorization"
+        },
+        {
+          "code": 1,
+          "label": "classical",
+          "handling": "ordinary stacked SVD or algebraically equivalent Gram eigenanalysis"
+        }
+      ],
+      "shared_input": "same represented scores from the same cached robust block fits",
+      "classical_block_refit": false,
+      "projector_sum_valid_only_when": "R1"
+    },
+    "I": {
+      "name": "individual_handling",
+      "levels": [
+        {
+          "code": 0,
+          "label": "original",
+          "handling": "return the selected robust Individual reconstruction unchanged"
+        },
+        {
+          "code": 1,
+          "label": "constrained",
+          "handling": "project the same reconstruction by I-Q_J Q_J^T and algebraically refactor"
+        }
+      ],
+      "selected_robust_fit_count_per_dataset_block": 1,
+      "rank_decision": "freeze_before_constraint",
+      "post_constraint_robust_refit": false,
+      "required_rank_outputs": [
+        "selected_rank_pre_constraint",
+        "achieved_rank_post_constraint",
+        "rank_drop"
+      ]
+    }
+  },
+  "arms": [
+    {"id": "R0S0I0", "R": 0, "S": 0, "I": 0, "baseline": true},
+    {"id": "R0S0I1", "R": 0, "S": 0, "I": 1, "baseline": false},
+    {"id": "R0S1I0", "R": 0, "S": 1, "I": 0, "baseline": false},
+    {"id": "R0S1I1", "R": 0, "S": 1, "I": 1, "baseline": false},
+    {"id": "R1S0I0", "R": 1, "S": 0, "I": 0, "baseline": false},
+    {"id": "R1S0I1", "R": 1, "S": 0, "I": 1, "baseline": false},
+    {"id": "R1S1I0", "R": 1, "S": 1, "I": 0, "baseline": false},
+    {"id": "R1S1I1", "R": 1, "S": 1, "I": 1, "baseline": false}
+  ],
+  "pipeline": {
+    "ordered_stages": [
+      "validate_fixed_inputs_and_certified_truth",
+      "prepare_cached_robust_block_fits_and_individual",
+      "apply_block_representation",
+      "aggregate_stack",
+      "canonicalize_final_joint_scores",
+      "emit_pre_l2_outputs",
+      "apply_common_l2_identifiability_filter",
+      "emit_post_l2_outputs",
+      "finish_shared_selected_individual",
+      "emit_terminal_record"
+    ],
+    "canonicalization_before_l2_filter": true,
+    "common_l2_filter_across_arms": true,
+    "geometry_immutable_during_finish": true,
+    "i_pair_shares_preselected_reconstruction": true,
+    "paired_invariants": [
+      "dataset_bytes",
+      "block_order",
+      "preprocessing",
+      "initial_ranks",
+      "requested_joint_rank",
+      "contamination_mask",
+      "cached_robust_block_fits",
+      "applicable_randomization_ids"
+    ],
+    "required_outputs": [
+      "block_scores_as_used",
+      "canonical_joint_scores_pre_l2",
+      "joint_rank_pre_l2",
+      "joint_gram_error_pre_l2",
+      "joint_scores_post_l2",
+      "joint_rank_post_l2",
+      "joint_gram_error_post_l2",
+      "l2_retained_direction_ids",
+      "l2_dropped_direction_ids",
+      "individual_rank_pre_constraint",
+      "individual_rank_post_constraint",
+      "individual_rank_drop",
+      "terminal_status"
+    ]
+  },
+  "stage_seed_derivation": {
+    "status": "SPECIFIED_NOT_RUN",
+    "algorithm": "SHA-256",
+    "message": "protocol_id|dataset_seed|scenario_id|stage_label",
+    "integer_mapping": "1 + (big_endian_first_8_digest_bytes mod 2147483646)",
+    "isolated_stage_labels": [
+      "prepare",
+      "geometry/R0S0",
+      "geometry/R0S1",
+      "geometry/R1S0",
+      "geometry/R1S1",
+      "finish/R0S0I0",
+      "finish/R0S0I1",
+      "finish/R0S1I0",
+      "finish/R0S1I1",
+      "finish/R1S0I0",
+      "finish/R1S0I1",
+      "finish/R1S1I0",
+      "finish/R1S1I1",
+      "null_permutation/block_id/draw_id"
+    ],
+    "null_permutation_arm_component_in_label": false,
+    "null_permutation_block_component_in_label": true
+  },
+  "rank_selection": {
+    "fixed_rank_layer": {
+      "status": "AUTHORIZED_FOR_DESIGN_AND_SMOKE",
+      "initial_ranks": "certified scenario truth",
+      "joint_rank": "certified scenario truth",
+      "reports_pre_and_post_l2": true
+    },
+    "automatic_rank_layer": {
+      "status": "BLOCKED_PENDING_MATCHED_NULL",
+      "candidate": "matched_within_block_independent_row_permutation",
+      "same_statistic_family_as_arm": true,
+      "independent_permutations_across_blocks": true,
+      "underlying_permutations_shared_across_arms": true,
+      "isolated_stage_seeds": true,
+      "draw_count": "UNFROZEN",
+      "tail_rule": "UNFROZEN",
+      "no_effective_finite_threshold_status": "BLOCKED_NO_EFFECTIVE_FINITE_THRESHOLD",
+      "negative_infinity_is_success": false
+    },
+    "wedin_alternative": {
+      "status": "BLOCKED_PENDING_DERIVATION_REVIEW",
+      "separate_from_permutation_candidate": true,
+      "may_be_combined_as_fallback_max_or_min": false,
+      "cross_reference": "Approved Stage 1 plan section 2, Source-grounded Wedin derivation, and its companion package-repository artifact",
+      "unverified_citations_asserted_here": false
+    }
+  },
+  "scenario_manifest": {
+    "status": "FUTURE_NOT_RUN",
+    "generator": {
+      "n": 60,
+      "block_features": [30, 25, 20],
+      "block_count": 3,
+      "center_operator": "H_n = I_n - 1_n 1_n^T / n",
+      "score_construction": "apply H_n to Gaussian score candidates, then deterministic rank-revealing orthonormalization",
+      "joint_scores": "shared across all blocks",
+      "individual_scores": "block-specific and in the Joint orthogonal complement",
+      "feature_loadings": "orthonormal within each component",
+      "component_singular_value_rule": "sqrt(n) times listed amplitude",
+      "noise": "E_k = H_n Z_k with iid pre-transform Z_k[i,j] ~ N(0,1)",
+      "recenter_after_contamination": false,
+      "failed_draw_policy": "terminal invalid_truth; never silently resample"
+    },
+    "truth_certificate": {
+      "required_post_transform": true,
+      "independent_matrix_reconstruction": true,
+      "checks": [
+        "finite_values",
+        "component_ranks",
+        "noiseless_ranks",
+        "joint_individual_orthogonality",
+        "zero_all_block_individual_intersection",
+        "all_block_noiseless_intersection_equals_joint_rank",
+        "reconstruction"
+      ]
+    },
+    "signals": [
+      {
+        "id": "joint_rank0",
+        "joint_rank": 0,
+        "joint_amplitudes": [],
+        "individual_ranks": [1, 1, 1],
+        "individual_amplitudes": [1.25],
+        "initial_block_ranks": [1, 1, 1],
+        "confirmation_pool": "null"
+      },
+      {
+        "id": "joint_rank1",
+        "joint_rank": 1,
+        "joint_amplitudes": [2.0],
+        "individual_ranks": [1, 1, 1],
+        "individual_amplitudes": [1.25],
+        "initial_block_ranks": [2, 2, 2],
+        "confirmation_pool": "rank_one"
+      },
+      {
+        "id": "joint_rank2",
+        "joint_rank": 2,
+        "joint_amplitudes": [2.0, 1.5],
+        "individual_ranks": [1, 1, 1],
+        "individual_amplitudes": [1.25],
+        "initial_block_ranks": [3, 3, 3],
+        "confirmation_pool": "rank_two"
+      },
+      {
+        "id": "joint_rank2_weak_last",
+        "joint_rank": 2,
+        "joint_amplitudes": [2.0, 0.35],
+        "individual_ranks": [1, 1, 1],
+        "individual_amplitudes": [1.25],
+        "initial_block_ranks": [3, 3, 3],
+        "confirmation_pool": null
+      }
+    ],
+    "contamination_conditions": [
+      {
+        "id": "clean",
+        "status": "FUTURE_NOT_RUN",
+        "altered_cells": 0
+      },
+      {
+        "id": "cell_5pct_plus10_robust_scale",
+        "status": "FUTURE_NOT_RUN",
+        "selection": "uniform_without_replacement_within_block",
+        "fraction_per_block": 0.05,
+        "cell_counts_by_block": [90, 75, 60],
+        "robust_scale": "median(abs(E_k - median(E_k))) / 0.6744897501960817",
+        "addition_in_robust_scale_units": 10.0,
+        "addition_sign": 1,
+        "mask_fixed_across_all_arms": true
+      },
+      {
+        "id": "row_10pct_plus10_robust_scale",
+        "status": "OPTIONAL_DEVELOPMENT_ONLY_NOT_RUN",
+        "selection": "six_sample_rows_uniform_without_replacement_shared_across_blocks",
+        "row_fraction": 0.10,
+        "row_count": 6,
+        "robust_scale": "median(abs(E_k - median(E_k))) / 0.6744897501960817",
+        "addition_in_robust_scale_units": 10.0,
+        "addition_sign": 1,
+        "mask_fixed_across_all_arms": true,
+        "confirmation_pool": null
+      }
+    ],
+    "core_cross_product": {
+      "signal_ids": [
+        "joint_rank0",
+        "joint_rank1",
+        "joint_rank2",
+        "joint_rank2_weak_last"
+      ],
+      "contamination_ids": [
+        "clean",
+        "cell_5pct_plus10_robust_scale"
+      ],
+      "all_eight_arms_per_dataset": true
+    }
+  },
+  "seed_manifest": {
+    "status": "FROZEN_LISTS_NOT_CONSUMED",
+    "smoke": {
+      "status": "PLANNED_NOT_RUN",
+      "seeds": [1729]
+    },
+    "development": {
+      "status": "FUTURE_NOT_RUN",
+      "seeds": [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020]
+    },
+    "confirmation": {
+      "status": "UNTOUCHED_LOCKED_NOT_RUN",
+      "available_for_development": false,
+      "null": [
+        20001, 20002, 20003, 20004, 20005, 20006, 20007, 20008, 20009, 20010,
+        20011, 20012, 20013, 20014, 20015, 20016, 20017, 20018, 20019, 20020,
+        20021, 20022, 20023, 20024, 20025, 20026, 20027, 20028, 20029, 20030,
+        20031, 20032, 20033, 20034, 20035, 20036, 20037, 20038, 20039, 20040,
+        20041, 20042, 20043, 20044, 20045, 20046, 20047, 20048, 20049, 20050,
+        20051, 20052, 20053, 20054, 20055, 20056, 20057, 20058, 20059, 20060,
+        20061, 20062, 20063, 20064, 20065, 20066, 20067, 20068, 20069, 20070,
+        20071, 20072, 20073, 20074, 20075, 20076, 20077, 20078, 20079, 20080,
+        20081, 20082, 20083, 20084, 20085, 20086, 20087, 20088, 20089, 20090,
+        20091, 20092, 20093, 20094, 20095, 20096, 20097, 20098, 20099, 20100,
+        20101, 20102, 20103, 20104, 20105, 20106, 20107, 20108, 20109, 20110,
+        20111, 20112, 20113, 20114, 20115, 20116, 20117, 20118, 20119, 20120,
+        20121, 20122, 20123, 20124, 20125, 20126, 20127, 20128, 20129, 20130,
+        20131, 20132, 20133, 20134, 20135, 20136, 20137, 20138, 20139, 20140,
+        20141, 20142, 20143, 20144, 20145, 20146, 20147, 20148, 20149, 20150,
+        20151, 20152, 20153, 20154, 20155, 20156, 20157, 20158, 20159, 20160,
+        20161, 20162, 20163, 20164, 20165, 20166, 20167, 20168, 20169, 20170,
+        20171, 20172, 20173, 20174, 20175, 20176, 20177, 20178, 20179, 20180,
+        20181, 20182, 20183, 20184, 20185, 20186, 20187, 20188, 20189, 20190,
+        20191, 20192, 20193, 20194, 20195, 20196, 20197, 20198, 20199, 20200
+      ],
+      "rank_one": [
+        21001, 21002, 21003, 21004, 21005, 21006, 21007, 21008, 21009, 21010,
+        21011, 21012, 21013, 21014, 21015, 21016, 21017, 21018, 21019, 21020,
+        21021, 21022, 21023, 21024, 21025, 21026, 21027, 21028, 21029, 21030,
+        21031, 21032, 21033, 21034, 21035, 21036, 21037, 21038, 21039, 21040,
+        21041, 21042, 21043, 21044, 21045, 21046, 21047, 21048, 21049, 21050,
+        21051, 21052, 21053, 21054, 21055, 21056, 21057, 21058, 21059, 21060,
+        21061, 21062, 21063, 21064, 21065, 21066, 21067, 21068, 21069, 21070,
+        21071, 21072, 21073, 21074, 21075, 21076, 21077, 21078, 21079, 21080,
+        21081, 21082, 21083, 21084, 21085, 21086, 21087, 21088, 21089, 21090,
+        21091, 21092, 21093, 21094, 21095, 21096, 21097, 21098, 21099, 21100
+      ],
+      "rank_two": [
+        22001, 22002, 22003, 22004, 22005, 22006, 22007, 22008, 22009, 22010,
+        22011, 22012, 22013, 22014, 22015, 22016, 22017, 22018, 22019, 22020,
+        22021, 22022, 22023, 22024, 22025, 22026, 22027, 22028, 22029, 22030,
+        22031, 22032, 22033, 22034, 22035, 22036, 22037, 22038, 22039, 22040,
+        22041, 22042, 22043, 22044, 22045, 22046, 22047, 22048, 22049, 22050,
+        22051, 22052, 22053, 22054, 22055, 22056, 22057, 22058, 22059, 22060,
+        22061, 22062, 22063, 22064, 22065, 22066, 22067, 22068, 22069, 22070,
+        22071, 22072, 22073, 22074, 22075, 22076, 22077, 22078, 22079, 22080,
+        22081, 22082, 22083, 22084, 22085, 22086, 22087, 22088, 22089, 22090,
+        22091, 22092, 22093, 22094, 22095, 22096, 22097, 22098, 22099, 22100
+      ]
+    },
+    "pairing_unit": "one seed identifies a latent dataset and every declared contamination condition and arm",
+    "weak_last_confirmation_pool": null,
+    "optional_row_confirmation_pool": null
+  },
+  "endpoints": {
+    "historical_primary_rank2_projector_loss": {
+      "formula": "norm(P_est - P_true, 'F') / sqrt(4)",
+      "truth_rank": 2,
+      "candidate_degradation_margin": 0.02,
+      "margin_scope": "this exact endpoint and normalization only",
+      "bounded_range": [0.0, 1.0]
+    },
+    "rank_outputs": [
+      "actual_rank_pre_l2",
+      "actual_rank_post_l2",
+      "exact_selection",
+      "under_selection",
+      "over_selection"
+    ],
+    "geometry": {
+      "block_gram_error": "max_k norm(Q_k^T Q_k - I, 'F')",
+      "final_gram_error": "norm(Q_J^T Q_J - I, 'F')",
+      "fitted_joint_individual_leakage": "max_k norm(Q_J_est^T I_est_k, 'F') / max(norm(I_est_k, 'F'), machine_epsilon)",
+      "true_joint_individual_leakage": "max_k norm(Q_J_true^T I_est_k, 'F') / max(norm(I_est_k, 'F'), machine_epsilon)"
+    },
+    "losses": {
+      "normalized_reconstruction": "sqrt(sum_k norm(X_k - J_est_k - I_est_k, 'F')^2 / sum_k norm(X_k, 'F')^2)",
+      "huber_robust": {
+        "delta": 1.345,
+        "rho": "0.5*u^2 when abs(u)<=delta; delta*(abs(u)-0.5*delta) otherwise",
+        "u": "(X_k[i,j] - J_est_k[i,j] - I_est_k[i,j]) / robust_scale_k",
+        "aggregation": "mean over all block cells"
+      },
+      "clean_entry_sensitivity": "RMSE of J_est+I_est versus clean noiseless J_true+I_true on the complement of the known contamination mask"
+    }
+  },
+  "paired_analysis": {
+    "status": "PLANNED_NOT_RUN",
+    "effect_coding": {"level_0": -1, "level_1": 1},
+    "contrasts": ["R", "S", "I", "RS", "RI", "SI", "RSI"],
+    "dataset_effect_formula": "2^(-2) * sum_over_8_arms(product(effect_codes) * endpoint)",
+    "uncertainty": {
+      "unit": "dataset_with_all_eight_arms_kept_together",
+      "method": "percentile_cluster_bootstrap",
+      "resamples": 10000,
+      "confidence_level": 0.95
+    },
+    "multiplicity": {
+      "method": "Holm",
+      "family": "seven contrasts within each declared endpoint family"
+    },
+    "failure_handling": {
+      "terminal_statuses": [
+        "success",
+        "failed",
+        "nonconverged",
+        "rank_deficient",
+        "invalid_truth",
+        "unsupported",
+        "timeout",
+        "oom"
+      ],
+      "all_attempts_in_denominator": true,
+      "report_complete_octet_count": true,
+      "report_missing_arm_patterns": true,
+      "analyze_failure_indicator": true,
+      "silent_complete_case_deletion": false,
+      "bounded_projector_failure_sensitivity": "map failed arm to loss 1",
+      "unbounded_endpoint_imputation": "none; no superiority claim under informative failure"
+    }
+  },
+  "future_gates": {
+    "interpretation": "mechanical correctness gates are necessary, not evidence of superiority",
+    "geometry": {
+      "block_gram_error_max": 1e-10,
+      "final_gram_error_max": 1e-10,
+      "constrained_individual_fitted_joint_leakage_max": 1e-8
+    },
+    "rank_null": {"datasets": 200, "type_I_max": 0.10},
+    "rank_one": {"datasets": 100, "exact_recovery_min": 0.80},
+    "rank_two": {"datasets": 100, "exact_recovery_min": 0.80, "over_selection_max": 0.10},
+    "rank_gate_status": "BLOCKED_WHILE_AUTOMATIC_RANK_IS_BLOCKED"
+  },
+  "provenance_boundary": {
+    "historical_manifest_reconstructed": false,
+    "inherited_source_files": [],
+    "derivation_cross_reference": "Approved Stage 1 plan section 2 and companion package-repository source-grounded Wedin derivation artifact",
+    "unverified_external_citations": []
+  }
+}
