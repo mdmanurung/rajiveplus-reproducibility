@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "protocol_id": "stage1_paired_ablation_2026-10-22",
-  "status": "DESIGN_AND_SMOKE_ONLY_NOT_RUN",
+  "status": "DESIGN_AND_SMOKE_VALIDATED_NO_BENCHMARK",
   "scientific_readiness": {
     "calibration": "NOT_RUN",
     "simulation_study": "NOT_RUN",
@@ -28,7 +28,7 @@
   },
   "planned_orchestrator": {
     "target": "scripts/run_stage1_smoke.R",
-    "status": "PLANNED_NOT_IMPLEMENTED_NOT_RUN",
+    "status": "IMPLEMENTED_CORRECTNESS_SMOKE_PASS",
     "data_mode": "fixed_data",
     "required_arm_count": 8,
     "claims_permitted": [
@@ -42,7 +42,7 @@
       "name": ".ablation_prepare",
       "planned_signature": ".ablation_prepare(blocks, initial_ranks, seed)",
       "visibility": "internal_only",
-      "responsibility": "fit robust blocks once; cache fits and one selected robust Individual reconstruction"
+      "responsibility": "fit robust blocks once and cache their thresholds; Individual selection occurs after each R/S geometry"
     },
     {
       "name": ".ablation_geometry",
@@ -51,8 +51,14 @@
       "responsibility": "derive immutable Joint geometry from the cache without block refitting"
     },
     {
+      "name": ".ablation_select_individual",
+      "planned_signature": ".ablation_select_individual(cache, geometry, seed)",
+      "visibility": "internal_only",
+      "responsibility": "select once per R/S geometry after identifiability; share immutable selection across I levels"
+    },
+    {
       "name": ".ablation_finish",
-      "planned_signature": ".ablation_finish(cache, geometry, individual='original'/'constrained', seed)",
+      "planned_signature": ".ablation_finish(cache, geometry, individual='original'/'constrained', seed, selected)",
       "visibility": "internal_only",
       "responsibility": "finish either Individual level from one preselected reconstruction without robust refitting"
     }
@@ -65,7 +71,7 @@
           "code": 0,
           "label": "raw",
           "block_score_handling": "cached robust block scores unchanged; no hidden QR",
-          "final_joint_score_handling": "preserve raw amplitudes; deterministic order and sign only"
+          "final_joint_score_handling": "preserve raw amplitudes and original component coordinates unchanged; no sorting or sign changes"
         },
         {
           "code": 1,
@@ -111,7 +117,7 @@
           "handling": "project the same reconstruction by I-Q_J Q_J^T and algebraically refactor"
         }
       ],
-      "selected_robust_fit_count_per_dataset_block": 1,
+      "selected_robust_fit_count_per_dataset_block_per_RS_geometry": 1,
       "rank_decision": "freeze_before_constraint",
       "post_constraint_robust_refit": false,
       "required_rank_outputs": [
@@ -134,13 +140,14 @@
   "pipeline": {
     "ordered_stages": [
       "validate_fixed_inputs_and_certified_truth",
-      "prepare_cached_robust_block_fits_and_individual",
+      "prepare_cached_robust_block_fits",
       "apply_block_representation",
       "aggregate_stack",
       "canonicalize_final_joint_scores",
       "emit_pre_l2_outputs",
       "apply_common_l2_identifiability_filter",
       "emit_post_l2_outputs",
+      "select_individual_once_per_RS_geometry",
       "finish_shared_selected_individual",
       "emit_terminal_record"
     ],
@@ -185,14 +192,10 @@
       "geometry/R0S1",
       "geometry/R1S0",
       "geometry/R1S1",
-      "finish/R0S0I0",
-      "finish/R0S0I1",
-      "finish/R0S1I0",
-      "finish/R0S1I1",
-      "finish/R1S0I0",
-      "finish/R1S0I1",
-      "finish/R1S1I0",
-      "finish/R1S1I1",
+      "individual_selection/R0S0",
+      "individual_selection/R0S1",
+      "individual_selection/R1S0",
+      "individual_selection/R1S1",
       "null_permutation/block_id/draw_id"
     ],
     "null_permutation_arm_component_in_label": false,
@@ -218,25 +221,28 @@
       "negative_infinity_is_success": false
     },
     "wedin_alternative": {
-      "status": "BLOCKED_PENDING_DERIVATION_REVIEW",
+      "status": "BLOCKED_UNRESOLVED_ROBUST_THEOREM_AND_COVERAGE",
       "separate_from_permutation_candidate": true,
       "may_be_combined_as_fallback_max_or_min": false,
-      "cross_reference": "Approved Stage 1 plan section 2, Source-grounded Wedin derivation, and its companion package-repository artifact",
+      "cross_reference": "Companion package docs/stage1-wedin-derivation.md; classical algebra and source audit complete, robust transfer unresolved",
       "unverified_citations_asserted_here": false
     }
   },
   "scenario_manifest": {
     "status": "FUTURE_NOT_RUN",
     "generator": {
+      "latent_generator": "rajiveplus_identifiable_v1 (.simulate_identifiable_data)",
+      "future_noise_adapter_status": "SPECIFIED_NOT_IMPLEMENTED_NOT_RUN",
       "n": 60,
       "block_features": [30, 25, 20],
       "block_count": 3,
       "center_operator": "H_n = I_n - 1_n 1_n^T / n",
-      "score_construction": "apply H_n to Gaussian score candidates, then deterministic rank-revealing orthonormalization",
+      "score_construction": "existing centered generator applies H_n to one Gaussian score pool then thin QR; allocate shared Joint and mutually orthogonal block-specific Individual directions",
       "joint_scores": "shared across all blocks",
       "individual_scores": "block-specific and in the Joint orthogonal complement",
-      "feature_loadings": "orthonormal within each component",
+      "feature_loadings": "combined Joint and Individual columns orthonormal within each block",
       "component_singular_value_rule": "sqrt(n) times listed amplitude",
+      "latent_generator_arguments": "joint_strength=sqrt(n)*joint_amplitudes, individual_strength=sqrt(n)*1.25, snr=Inf",
       "noise": "E_k = H_n Z_k with iid pre-transform Z_k[i,j] ~ N(0,1)",
       "recenter_after_contamination": false,
       "failed_draw_policy": "terminal invalid_truth; never silently resample"
@@ -337,10 +343,14 @@
     }
   },
   "seed_manifest": {
-    "status": "FROZEN_LISTS_NOT_CONSUMED",
+    "status": "STUDY_POOLS_FROZEN_UNTOUCHED_SMOKE_SEPARATE",
     "smoke": {
-      "status": "PLANNED_NOT_RUN",
-      "seeds": [1729]
+      "status": "CORRECTNESS_SMOKE_RUN_NOT_A_STUDY_REPLICATE",
+      "seeds": [1729],
+      "stage_seeds": {"block_fit": 8101, "aggregation": 8102, "individual_selection": 8103},
+      "dimensions": {"n": 36, "p": [12, 10, 8]},
+      "latent_generator_arguments": {"joint_strength": [4, 3], "individual_strength": 2, "snr": 4},
+      "note": "Smoke uses existing centered generator directly, not the future unit-noise scenario adapter"
     },
     "development": {
       "status": "FUTURE_NOT_RUN",
@@ -406,7 +416,8 @@
       "truth_rank": 2,
       "candidate_degradation_margin": 0.02,
       "margin_scope": "this exact endpoint and normalization only",
-      "bounded_range": [0.0, 1.0]
+      "bounded_range": [0.0, 1.118033988749895],
+      "bound_scope": "rank-two truth and estimated rank at most three: sqrt((2+3)/4); equal rank two has bound one"
     },
     "rank_outputs": [
       "actual_rank_pre_l2",
@@ -416,8 +427,8 @@
       "over_selection"
     ],
     "geometry": {
-      "block_gram_error": "max_k norm(Q_k^T Q_k - I, 'F')",
-      "final_gram_error": "norm(Q_J^T Q_J - I, 'F')",
+      "block_gram_error": "max_k max(abs(Q_k^T Q_k - I))",
+      "final_gram_error": "max(abs(Q_J^T Q_J - I))",
       "fitted_joint_individual_leakage": "max_k norm(Q_J_est^T I_est_k, 'F') / max(norm(I_est_k, 'F'), machine_epsilon)",
       "true_joint_individual_leakage": "max_k norm(Q_J_true^T I_est_k, 'F') / max(norm(I_est_k, 'F'), machine_epsilon)"
     },
@@ -427,6 +438,7 @@
         "delta": 1.345,
         "rho": "0.5*u^2 when abs(u)<=delta; delta*(abs(u)-0.5*delta) otherwise",
         "u": "(X_k[i,j] - J_est_k[i,j] - I_est_k[i,j]) / robust_scale_k",
+        "robust_scale_k": "precontamination noise median absolute deviation / 0.6744897501960817, shared across arms; zero scale is unsupported",
         "aggregation": "mean over all block cells"
       },
       "clean_entry_sensitivity": "RMSE of J_est+I_est versus clean noiseless J_true+I_true on the complement of the known contamination mask"
@@ -437,6 +449,9 @@
     "effect_coding": {"level_0": -1, "level_1": 1},
     "contrasts": ["R", "S", "I", "RS", "RI", "SI", "RSI"],
     "dataset_effect_formula": "2^(-2) * sum_over_8_arms(product(effect_codes) * endpoint)",
+    "projector_definition": "orthogonal projector onto numerical fitted span for every arm, never raw nonorthogonal U U^T",
+    "structural_zero_contrasts": "I-containing contrasts on Joint geometry/rank endpoints; I never changes frozen Joint geometry",
+    "primary_margin_rule": "candidate-minus-baseline paired mean loss; one-sided percentile-bootstrap upper bound at 1-0.05/(7*2) below +0.02 for nondegradation; no superiority inference",
     "uncertainty": {
       "unit": "dataset_with_all_eight_arms_kept_together",
       "method": "percentile_cluster_bootstrap",
@@ -445,7 +460,8 @@
     },
     "multiplicity": {
       "method": "Holm",
-      "family": "seven contrasts within each declared endpoint family"
+      "family": "seven contrasts within each declared endpoint family",
+      "inferential_test_status": "BLOCKED_PENDING_FROZEN_PVALUE_CONSTRUCTION; descriptive 95% intervals are nominal"
     },
     "failure_handling": {
       "terminal_statuses": [
@@ -463,7 +479,7 @@
       "report_missing_arm_patterns": true,
       "analyze_failure_indicator": true,
       "silent_complete_case_deletion": false,
-      "bounded_projector_failure_sensitivity": "map failed arm to loss 1",
+      "bounded_projector_failure_sensitivity": "map failed rank-two arm to sqrt(5)/2 for estimated-rank capacity three; also report complete-octet sensitivity",
       "unbounded_endpoint_imputation": "none; no superiority claim under informative failure"
     }
   },

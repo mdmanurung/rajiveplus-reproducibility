@@ -15,6 +15,19 @@ write_json <- function(x, name) jsonlite::write_json(
   digits = 16, null = "null", na = "null"
 )
 seeds <- list(data = 1729L, block_fit = 8101L, aggregation = 8102L, individual = 8103L)
+manifest_path <- file.path("config", "stage1_ablation.json")
+manifest <- jsonlite::read_json(manifest_path, simplifyVector = TRUE)
+spec <- manifest$seed_manifest$smoke
+stopifnot(identical(as.integer(spec$seeds), seeds$data),
+          spec$stage_seeds$block_fit == seeds$block_fit,
+          spec$stage_seeds$aggregation == seeds$aggregation,
+          spec$stage_seeds$individual_selection == seeds$individual,
+          spec$dimensions$n == 36, all(spec$dimensions$p == c(12, 10, 8)),
+          all(spec$latent_generator_arguments$joint_strength == c(4, 3)),
+          spec$latent_generator_arguments$individual_strength == 2,
+          spec$latent_generator_arguments$snr == 4)
+rank_tol <- function(x) max(dim(x)) * .Machine$double.eps *
+  max(svd(x, nu = 0L, nv = 0L)$d, 0)
 sim <- internal(".simulate_identifiable_data")(
   K = 3L, n = 36L, pks = c(12L, 10L, 8L), rank_joint = 2L,
   rank_individual = c(1L, 1L, 1L), joint_strength = c(4, 3),
@@ -62,7 +75,7 @@ for (R in c("raw", "orthonormal")) for (S in c("robust", "classical")) {
       joint_gram_error = gram(q),
       block_gram_error = max(vapply(geometry$block_scores, gram, numeric(1L))),
       maximum_span_leakage = max(vapply(result$blocks, `[[`, numeric(1L),
-                                        "individual_true_span_leakage")),
+                                        "individual_fitted_span_leakage")),
       maximum_rank_drop = max(vapply(result$blocks, `[[`, integer(1L),
                                      "individual_rank_drop")),
       maximum_closure = max(vapply(result$blocks, `[[`, numeric(1L),
@@ -73,6 +86,17 @@ for (R in c("raw", "orthonormal")) for (S in c("robust", "classical")) {
       selected_individual_sha256 = hash(selected),
       stack_sha256 = hash(geometry$stacked_scores),
       dropped_directions = geometry$identif_dropped,
+      retained_directions = setdiff(seq_len(geometry$pre_filter_rank),
+                                   geometry$identif_dropped),
+      joint_gram_pre_filter = gram(geometry$pre_filter_scores),
+      joint_gram_post_filter = gram(geometry$joint_scores),
+      representation_algorithm = if (R == "raw") "unchanged robust coordinates"
+        else "base::svd left singular vectors; native LAPACK order and signs",
+      representation_rank_tolerance_policy = "max(dim)*machine_epsilon*largest_singular_value",
+      block_representation_tolerances = vapply(seq_along(cache$blocks), function(k) {
+        rank_tol(cache$block_fits[[k]]$u[, seq_len(cache$initial_ranks[k]), drop = FALSE])
+      }, numeric(1L)),
+      final_representation_tolerance = rank_tol(geometry$raw_selected_scores),
       representation_rank_drop = geometry$final_representation_rank_drop,
       requested_joint_rank = 2L, achieved_joint_rank = ncol(q),
       individual_ranks_before = vapply(selected, `[[`, integer(1L), "rank"),
@@ -121,6 +145,8 @@ write_json(list(
   generator = sim$metadata, preprocessing = cache$preprocessing,
   truth_certificate_status = certificate$status,
   input_sha256 = data_hash, block_fit_sha256 = fit_hash,
+  protocol_config_sha256 = digest::digest(file = manifest_path, algo = "sha256"),
+  package_commit = system2("git", c("-C", package_root, "rev-parse", "HEAD"), stdout = TRUE),
   hash_encoding = "SHA256 of R serialization via digest; matched R environment required",
   baseline_equivalence = baseline_checks,
   arms = nrow(table), software_readiness = "NOT_READY",

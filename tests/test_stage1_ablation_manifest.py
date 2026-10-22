@@ -17,7 +17,7 @@ class Stage1AblationManifestTests(unittest.TestCase):
         cls.cfg = json.loads(cls.raw)
 
     def test_scope_and_readiness_are_fail_closed(self):
-        self.assertEqual(self.cfg["status"], "DESIGN_AND_SMOKE_ONLY_NOT_RUN")
+        self.assertEqual(self.cfg["status"], "DESIGN_AND_SMOKE_VALIDATED_NO_BENCHMARK")
         self.assertEqual(
             self.cfg["scientific_readiness"],
             {
@@ -45,7 +45,7 @@ class Stage1AblationManifestTests(unittest.TestCase):
         )
         self.assertEqual(
             helpers[".ablation_finish"]["planned_signature"],
-            ".ablation_finish(cache, geometry, individual='original'/'constrained', seed)",
+            ".ablation_finish(cache, geometry, individual='original'/'constrained', seed, selected)",
         )
         self.assertTrue(all(x["visibility"] == "internal_only" for x in helpers.values()))
 
@@ -79,7 +79,7 @@ class Stage1AblationManifestTests(unittest.TestCase):
 
     def test_individual_pair_freezes_selection_and_logs_rank_drop(self):
         indiv = self.cfg["factor_levels"]["I"]
-        self.assertEqual(indiv["selected_robust_fit_count_per_dataset_block"], 1)
+        self.assertEqual(indiv["selected_robust_fit_count_per_dataset_block_per_RS_geometry"], 1)
         self.assertEqual(indiv["rank_decision"], "freeze_before_constraint")
         self.assertFalse(indiv["post_constraint_robust_refit"])
         self.assertEqual(
@@ -132,7 +132,7 @@ class Stage1AblationManifestTests(unittest.TestCase):
         )
         self.assertFalse(auto["negative_infinity_is_success"])
         wedin = rank["wedin_alternative"]
-        self.assertEqual(wedin["status"], "BLOCKED_PENDING_DERIVATION_REVIEW")
+        self.assertEqual(wedin["status"], "BLOCKED_UNRESOLVED_ROBUST_THEOREM_AND_COVERAGE")
         self.assertTrue(wedin["separate_from_permutation_candidate"])
         self.assertFalse(wedin["may_be_combined_as_fallback_max_or_min"])
         self.assertFalse(wedin["unverified_citations_asserted_here"])
@@ -247,16 +247,27 @@ class Stage1AblationManifestTests(unittest.TestCase):
         self.assertTrue(failures["analyze_failure_indicator"])
         self.assertFalse(failures["silent_complete_case_deletion"])
 
-    def test_smoke_target_is_only_planned_and_no_sources_are_bundled(self):
+    def test_smoke_target_is_correctness_only_and_no_sources_are_bundled(self):
         smoke = self.cfg["planned_orchestrator"]
         self.assertEqual(smoke["target"], "scripts/run_stage1_smoke.R")
-        self.assertEqual(smoke["status"], "PLANNED_NOT_IMPLEMENTED_NOT_RUN")
+        self.assertEqual(smoke["status"], "IMPLEMENTED_CORRECTNESS_SMOKE_PASS")
+        self.assertTrue((ROOT / smoke["target"]).is_file())
         self.assertEqual(smoke["required_arm_count"], 8)
         boundary = self.cfg["provenance_boundary"]
         self.assertFalse(boundary["historical_manifest_reconstructed"])
         self.assertEqual(boundary["inherited_source_files"], [])
         self.assertEqual(boundary["unverified_external_citations"], [])
         self.assertIn("Wedin derivation", boundary["derivation_cross_reference"])
+
+    def test_rank_mismatch_bound_and_selection_order_are_not_hidden(self):
+        import math
+        primary = self.cfg["endpoints"]["historical_primary_rank2_projector_loss"]
+        self.assertAlmostEqual(primary["bounded_range"][1], math.sqrt(5) / 2)
+        stages = self.cfg["pipeline"]["ordered_stages"]
+        self.assertGreater(stages.index("select_individual_once_per_RS_geometry"),
+                           stages.index("apply_common_l2_identifiability_filter"))
+        labels = self.cfg["stage_seed_derivation"]["isolated_stage_labels"]
+        self.assertFalse(any("I0" in x or "I1" in x for x in labels))
 
 
 if __name__ == "__main__":
