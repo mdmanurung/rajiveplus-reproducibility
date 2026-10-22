@@ -1,0 +1,8 @@
+name: rajiveplus-paper-stage0
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11.13
+  - uv
+# Then run: uv pip install --python "$(command -v python)" -r requirements.txt
+# This is an environment specification, not a solved or historical lockfile.

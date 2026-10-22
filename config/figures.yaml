@@ -1,0 +1,10 @@
+schema_version: 1
+status: NOT_READY
+renderer: NOT_IMPLEMENTED
+main: [Fig1, Fig2, Fig3, Fig4, Fig5]
+supplementary: [S1, S2, S3, S4, S5, S6, S7, S8, S9, S10]
+conditional_supplementary: [S11, S12]
+tables: [TableS1, TableS2, TableS3, TableS4, TableS5, TableS6, TableS7, TableS8]
+conditional_policy: S11/S12 require an explicit later scientific inclusion decision; neither is enabled now.
+prerequisite_pattern: "results/scientific/{id}.json"
+prerequisite_contract: Source-pinned validated fits, certified truth or audited real-data analysis, metrics, uncertainty, and approved figure-specific scientific design.

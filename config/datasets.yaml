@@ -1,0 +1,33 @@
+schema_version: 1
+covid:
+  repository: https://github.com/ByronSyun/DIVAS_COVID19_CaseStudy
+  commit: 12cae2bd385919cb2ffb48abb07813be9c440fc3
+  path: scRNA_celltyist_analysis/DIVAS_run/divas_input_T1T2combined
+  cache_dir: data/cache/covid
+  orientation: features_by_samples
+  track: processed_cell_type_means_and_bulk_omics
+  raw_counts: false
+  expected_samples: 114
+  expected_patients: 85
+  expected_paired_patients: 29
+  expected_timepoints: {T1: 57, T2: 57}
+  metadata_file: final_sample_info.csv
+  code_license: AGPL-3 (upstream LICENSE and README)
+  data_license: UNVERIFIED_SEPARATE_DATA_TERMS
+  data_redistribution: not_authorized_by_this_workflow
+  wos_1_5_meaning: "Original '1 or 2' recoding; not a fractional clinical severity score."
+  selection_limitation: "Source says selection optimized DIVAS correlation sensitivity; comparative/clinical conclusions may be selection-biased and remain exploratory."
+  files:
+    - {name: Combined_CD14_Monocyte.csv, rows: 8634, kind: expression, sha256: 64e9c1022af625353196b2f218b78f5ef6cf6ca462fa179bf3d3bc5520138c96}
+    - {name: Combined_CD4_T_combined.csv, rows: 8634, kind: expression, sha256: a756ed38742eed1c6c1edc23d037298cb66d20cfc745d591f7e96f7d2d5bc702}
+    - {name: Combined_CD8_T_combined.csv, rows: 8634, kind: expression, sha256: 0717caad5a7493a08a3662eb75d6a1b11e0c7d26a9ed46416f50938bb2ec94d0}
+    - {name: Combined_NK.csv, rows: 8634, kind: expression, sha256: a72dd40ba75ed12eb806e0b416eba3ad0c5418ce97343ef7c43242113e28ece0}
+    - {name: Combined_proteomics.csv, rows: 481, kind: protein, sha256: 743aa3120a5dc77154ea699c5b6974516d317792f5a49e3ec8105d58ef2cf3b0}
+    - {name: Combined_metabolomics.csv, rows: 763, kind: metabolite, sha256: d441cf1e797af663093d0ec5159a5a48aa4343712056dc1894dbddb69ecab8ba}
+    - {name: final_sample_info.csv, rows: 114, kind: metadata, sha256: 5aa501e78354a0bdc82283eb388c4b7b10e1ee2a75e30dfb6c4101ac8b70ea0f}
+cll:
+  status: NOT_RUN
+  source: BloodCancerMultiOmics2017
+  version: UNPINNED
+  data_license: UNVERIFIED_SEPARATE_DATA_TERMS
+  prerequisite: docs/PROVENANCE.md

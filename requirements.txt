@@ -1,0 +1,5 @@
+# Observed direct workflow/test dependencies, not a complete lockfile.
+snakemake==9.27.1
+pytest==9.1.1
+requests==2.34.2
+PyYAML==6.0.3

@@ -1,0 +1,69 @@
+from pathlib import Path
+import sys
+import yaml
+
+ROOT = Path(workflow.basedir).parent
+sys.path.insert(0, str(ROOT / "scripts"))
+from stage0 import run_acquire, run_audit, run_receipt, run_readiness, require_figure
+
+configfile: "config/datasets.yaml"
+FILES = [f"data/cache/covid/{x['name']}" for x in config["covid"]["files"]]
+CONFIGS = [str(x) for x in sorted(Path("config").glob("*.yaml"))]
+SOURCE = ["scripts/stage0.py", "workflow/Snakefile", "requirements.txt"]
+MANIFESTS = ["data/manifests/covid_all.csv", "data/manifests/covid_primary.csv",
+             "data/manifests/covid_sensitivity.csv"]
+
+rule all:
+    input:
+        "results/manifests/run_receipt.json",
+        "results/manifests/readiness.json"
+
+rule acquire:
+    input:
+        "config/datasets.yaml", "scripts/stage0.py"
+    output:
+        files=FILES,
+        receipt="results/manifests/acquisition.json"
+    run:
+        run_acquire(Path("."), Path(output.receipt))
+
+rule audit:
+    input:
+        files=FILES,
+        acquisition="results/manifests/acquisition.json",
+        config="config/datasets.yaml",
+        code="scripts/stage0.py"
+    output:
+        receipt="results/manifests/audit.json",
+        manifests=MANIFESTS
+    run:
+        run_audit(Path("."), Path(output.receipt))
+
+rule provenance:
+    input:
+        acquisition="results/manifests/acquisition.json",
+        audit="results/manifests/audit.json",
+        manifests=MANIFESTS,
+        configs=CONFIGS,
+        source=SOURCE
+    output:
+        "results/manifests/run_receipt.json"
+    run:
+        run_receipt(Path("."), Path(output[0]))
+
+rule readiness:
+    input:
+        configs=CONFIGS,
+        code="scripts/stage0.py"
+    output:
+        "results/manifests/readiness.json"
+    run:
+        run_readiness(Path("."), Path(output[0]))
+
+rule scientific_figure:
+    input:
+        "config/figures.yaml", "scripts/stage0.py"
+    output:
+        "results/figures/{figure}.pdf"
+    run:
+        require_figure(Path("."), wildcards.figure)

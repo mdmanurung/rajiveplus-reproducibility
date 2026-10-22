@@ -1,0 +1,15 @@
+schema_version: 1
+analysis_set: pilot
+status: NOT_RUN
+generator: NOT_IMPLEMENTED
+truth_certification: REQUIRED_BEFORE_FITS
+seed_convention: Future freeze of scenario IDs and independent replicate seeds required; no simulation seeds executed here.
+future_gates:
+  geometry_gram_error_max: 1.0e-10
+  individual_leakage_max: 1.0e-8
+  rank_null: {datasets: 200, type_I_max: 0.10}
+  rank_one: {datasets: 100, exact_recovery_min: 0.80}
+  rank_two: {datasets: 100, exact_recovery_min: 0.80, over_selection_max: 0.10}
+  candidate_projector_loss_degradation_margin: 0.02
+projector_margin_status: Requires original metric definition; not executed or redefined.
+historical_manifests: MISSING_NOT_RECONSTRUCTED

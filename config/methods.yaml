@@ -1,0 +1,18 @@
+schema_version: 1
+analysis_set: pilot
+methods:
+  rajiveplus:
+    repository: https://github.com/mdmanurung/rajiveplus
+    commit: 8ceabeedea6501a15b10158e40ad8cebd904ec11
+    status: NOT_RUN
+    adapter: NOT_IMPLEMENTED
+    note: Parent package work may create a new source commit; never substitute silently.
+  rajive:
+    repository: https://github.com/ericaponzi/RaJIVE
+    commit: 7d494d11029e538587ee9b27688adacf7f1f9841
+    status: NOT_RUN
+    adapter: NOT_IMPLEMENTED
+  rjive: {commit: UNPINNED, status: NOT_RUN, adapter: NOT_IMPLEMENTED}
+  ajive: {commit: UNPINNED, status: NOT_RUN, adapter: NOT_IMPLEMENTED}
+  divas: {commit: UNPINNED, status: NOT_RUN, adapter: NOT_IMPLEMENTED}
+  mofa2: {commit: UNPINNED, status: NOT_RUN, adapter: NOT_IMPLEMENTED}

@@ -1,0 +1,21 @@
+schema_version: 1
+milestone: stage0_foundation
+analysis_set: pilot
+scientific_readiness: NOT_READY
+fits: NOT_RUN
+inference: NOT_RUN
+primary: {unit: clinical_id, selection: earliest_available_timepoint, expected_before_exclusions: 85}
+sensitivity: {unit: observation, observations: 114, grouping: clinical_id, split_unit: clinical_id}
+wos:
+  ambiguous_value: 1.5
+  interpretation: "Recoding of original '1 or 2', not a fractional clinical score."
+  future_analysis: Freeze ambiguous-category handling before inference; no numeric severity model is authorized.
+future_freezes:
+  - endpoints
+  - covariates
+  - multiplicity
+  - patient_grouped_resampling
+  - preprocessing
+  - comparator_options
+  - source_and_environment_pins
+selection_limitation: Source selection optimized DIVAS correlation sensitivity; no unbiased benchmark or clinical inference claim.
