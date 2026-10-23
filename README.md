@@ -87,4 +87,4 @@ RJP-BASE v2, version 0.1.0). `config/package.yaml` records the pin and the
 install procedure. Clone with `git clone --recurse-submodules` (or
 `git submodule update --init`) to restore the exact package state; the
 workflow builds and installs the package from that checkout before any
-fitting. Re-pin to the master merge commit after PR #9 is merged.
+fitting. The pin tracks the master tip at tag v0.1.0-stage2.
