@@ -77,3 +77,14 @@ data are redistributed in this source tree/archive. Attribution and CLL audit:
 `docs/PROVENANCE.md`. Future gates and adapter contract:
 `docs/FUTURE_CONTRACT.md`. Reproduction, limitations and environment evidence:
 `docs/REPRODUCIBILITY.md`.
+
+## Pinned analysis package
+
+The paper workflow runs against the [`rajiveplus`](https://github.com/mdmanurung/rajiveplus)
+R package, pinned as a git submodule (`rajiveplus/`) at commit
+`ac472733f42de4d29e2e0e0d53f97aa60c6dabf7` (stage-2, PR #9 head at pin time;
+RJP-BASE v2, version 0.1.0). `config/package.yaml` records the pin and the
+install procedure. Clone with `git clone --recurse-submodules` (or
+`git submodule update --init`) to restore the exact package state; the
+workflow builds and installs the package from that checkout before any
+fitting. Re-pin to the master merge commit after PR #9 is merged.
