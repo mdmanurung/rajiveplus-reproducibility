@@ -5,7 +5,7 @@
 # master merge commit after PR #9 is merged, and tag the release commit.
 package:
   repo: https://github.com/mdmanurung/rajiveplus.git
-  commit: ac472733f42de4d29e2e0e0d53f97aa60c6dabf7
+  commit: 99fd4e3ed83226d7fd9f87afdb0ba5bc012c9c1e
   ref_at_pin_time: refs/heads/miss-data-handling  # PR #9 head (unmerged at pin time)
   version: 0.1.0
   method_profile: RJP-BASE v2 (default_orthonormal_constrained)
