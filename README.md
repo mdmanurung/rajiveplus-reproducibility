@@ -82,7 +82,7 @@ data are redistributed in this source tree/archive. Attribution and CLL audit:
 
 The paper workflow runs against the [`rajiveplus`](https://github.com/mdmanurung/rajiveplus)
 R package, pinned as a git submodule (`rajiveplus/`) at commit
-`99fd4e3ed83226d7fd9f87afdb0ba5bc012c9c1e` (stage-2, PR #9 head at pin time;
+`a94210ade9238553808c0d881824cc34c2c56f58` (stage-2, PR #9 head at pin time;
 RJP-BASE v2, version 0.1.0). `config/package.yaml` records the pin and the
 install procedure. Clone with `git clone --recurse-submodules` (or
 `git submodule update --init`) to restore the exact package state; the
